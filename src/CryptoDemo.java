@@ -12,85 +12,103 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.StringTokenizer;
 
 public class CryptoDemo {
-    public static void main(String[] args) {
-	    String[] schemes = {
-			    "AES/CBC/PKCS5Padding",
-			    "AES/CTR/PKCS5Padding",
-			    "DES/CBC/PKCS5Padding",
-			    "DES/CTR/PKCS5Padding",
-			    "DESede/CBC/PKCS5Padding",
-			    "DESede/CTR/PKCS5Padding"
-	    };
+	public static void main(String[] args) {
+		String[] schemes = {
+				"AES/CBC/PKCS5Padding",
+				"AES/CTR/PKCS5Padding",
+				"DES/CBC/PKCS5Padding",
+				"DES/CTR/PKCS5Padding",
+				"DESede/CBC/PKCS5Padding",
+				"DESede/CTR/PKCS5Padding"
+		};
 
-	    String path = "/Users/nicholas/Desktop/Cipher/";
-	    File inFile = new File(path + "pg10.txt");
+		final int TEST_COUNT = 32;
+
+		String path = "/Users/nicholas/Desktop/Cipher/";
+		File inFile = new File(path + "pg10.txt");
+
+		File logFile = new File(path + "results.csv");
 
 	    /* Begin the client testing */
-	    try {
-		    for (String alg : schemes) {
-			    StringTokenizer st = new StringTokenizer(alg, "/");
-			    String method = st.nextToken();
+		try {
 
-			    // Generate a random key
-			    KeyGenerator keygen = KeyGenerator.getInstance(method);
-				SecretKey keymat = keygen.generateKey();
+			String output;
+			for (int i = 0; i < TEST_COUNT; i++) {
 
-			    FileCipher fc = new FileCipher(alg, keymat);  // This will produce a random IV when initializing the cipher
+				for (String alg : schemes) {
+					StringTokenizer st = new StringTokenizer(alg, "/");
+					String method = st.nextToken();
 
-			    // Take our test scheme and make a pretty filename for it.
-			    st = new StringTokenizer(alg, "/");
-			    String niceString = st.nextToken() + "-" + st.nextToken();
+					// Generate a random key
+					KeyGenerator keygen = KeyGenerator.getInstance(method);
+					SecretKey keymat = keygen.generateKey();
 
-			    // Important: save our key!
-			    File keyFile = new File(path + niceString + "-keyfile.txt");
-			    FileOutputStream keyOut = new FileOutputStream(keyFile);
-			    keyOut.write(keymat.getEncoded());
-			    keyOut.close();
+					FileCipher fc = new FileCipher(alg, keymat);  // This will produce a random IV when initializing the cipher
 
-			    // Create new files for the output
-			    File outFile = new File(path + niceString + "-cipher.txt");
+					// Take our test scheme and make a pretty filename for it.
+					st = new StringTokenizer(alg, "/");
+					String niceString = st.nextToken() + "-" + st.nextToken();
+
+					// Important: save our key!
+					File keyFile = new File(path + niceString + "-keyfile.txt");
+					FileOutputStream keyOut = new FileOutputStream(keyFile);
+					keyOut.write(keymat.getEncoded());
+					keyOut.close();
+
+					// Create new files for the output
+					File outFile = new File(path + niceString + "-cipher.txt");
+					File decryptFile = new File(path + niceString + "-decrypted.txt");
 
 
-			    File decryptFile = new File(path + niceString + "-decrypted.txt");
+					// Encrypt our source
+					System.out.println("Encrypting using: " + alg);
+					long start = System.currentTimeMillis();
+					fc.EncryptFile(inFile, outFile); // The actual encryption
+					long stop = System.currentTimeMillis();
+					System.out.println("Encryption time:  " + (stop - start) + "ms\n");
 
+					output = "encryption," + alg + "," + (stop - start) + '\n';
+					logResults(output, logFile);
 
-			    // Encrypt our source
-			    System.out.println("Encrypting using: " + alg);
-			    long start = System.currentTimeMillis();
-			    fc.EncryptFile(inFile, outFile); // The actual encryption
-			    long stop = System.currentTimeMillis();
-			    System.out.println("Encryption time: " + (stop - start) + '\n');
+					// Decrypt our source
+					System.out.println("Decrypting using: " + alg);
+					start = System.currentTimeMillis();
+					fc.DecryptFile(outFile, decryptFile);  // The actual decryption
+					stop = System.currentTimeMillis();
+					System.out.println("Decryption time:  " + (stop - start) + "ms");
+					System.out.println("---------------------------------------------------");
 
-			    // Decrypt our source
-			    System.out.println("Decrypting using: " + alg);
-			    start = System.currentTimeMillis();
-			    fc.DecryptFile(outFile, decryptFile);  // The actual decryption
-			    stop = System.currentTimeMillis();
-			    System.out.println("Decryption time: " + (stop - start));
-				System.out.println("---------------------------------------------------");
-		    }
+					output = "decryption," + alg + "," + (stop - start) + '\n';
+					logResults(output, logFile);
+				}
+			}
 		/* End Client Testing */
-	    } catch (NoSuchPaddingException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(100);
-	    } catch (NoSuchAlgorithmException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(101);
-	    } catch (InvalidKeyException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(102);
-	    } catch (FileNotFoundException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(99);
-	    } catch (InvalidKeySpecException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(103);
-	    } catch (IOException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(255);
-	    } catch (InvalidAlgorithmParameterException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(104);
-	    }
-    }
+		} catch (NoSuchPaddingException e) {
+			System.err.println(e.getMessage());
+			System.exit(100);
+		} catch (NoSuchAlgorithmException e) {
+			System.err.println(e.getMessage());
+			System.exit(101);
+		} catch (InvalidKeyException e) {
+			System.err.println(e.getMessage());
+			System.exit(102);
+		} catch (FileNotFoundException e) {
+			System.err.println(e.getMessage());
+			System.exit(99);
+		} catch (InvalidKeySpecException e) {
+			System.err.println(e.getMessage());
+			System.exit(103);
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			System.exit(255);
+		} catch (InvalidAlgorithmParameterException e) {
+			System.err.println(e.getMessage());
+			System.exit(104);
+		}
+	}
+
+	private static void logResults(String logData, File logFile) throws IOException {
+		FileOutputStream logResults = new FileOutputStream(logFile, true);
+		logResults.write(logData.getBytes());
+	}
 }
