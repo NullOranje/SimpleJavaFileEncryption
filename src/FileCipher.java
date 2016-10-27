@@ -14,7 +14,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 import java.util.StringTokenizer;
 
 class FileCipher {
@@ -74,25 +73,25 @@ class FileCipher {
     }
 
     void DecryptFile(File cipherText, File plainText) throws IOException, InvalidAlgorithmParameterException, InvalidKeyException {
-        cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(IV));
+        /* Now, let's go in reverse! */
+	    FileInputStream in = new FileInputStream(cipherText);
 
-		/* Build an input stream that processes our plaintext through the block cipher */
-        CipherInputStream cin = new CipherInputStream(new FileInputStream(cipherText), cipher);
+		/* Read our IV from the ciphertext file */
+		byte[] b = new byte[cipher.getBlockSize()];
+		int status = in.read(b);
+		newIV(b);
 
-        /* Build an output stream for out encrypted data */
-        FileOutputStream out = new FileOutputStream(plainText);
+		/* Initialize the Cipher object in DECRYPT_MODE, with the same key and the IV from our ciphertext file */
+		cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(IV));
 
-		/* Output the IV as the first block to our file */
-        out.write(cipher.getIV());
+		/* Initialize a new CipherOutputStream to process our decrypted text. */
+		CipherOutputStream cout = new CipherOutputStream(new FileOutputStream(plainText), cipher);
+	    while (in.read(b) != -1) {
+			cout.write(b);
+	    }
 
-        byte[] b = new byte[cipher.getBlockSize()];
-
-		/* Encrypt the entire file */
-        while (cin.read(b) != -1)
-            out.write(b);
-
-        out.close();
-        cin.close();
+		cout.close();
+	    in.close();
     }
 
     public byte[] getIV() {
