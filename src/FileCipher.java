@@ -3,14 +3,13 @@
  *
  * Assignment: TCSS 581 (Cryptology) HW#2
  *
- * This is a generalized file encryptor based on the SunJCE provider
+ * This is a generalized file encryption/decryption class based on the SunJCE provider
  * It will encrypt/decrypt any file using any scheme in the SunJCE provider
  *
  */
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -29,29 +28,25 @@ class FileCipher {
 
     // Construct object for our algorithm
     // This does not initialize the Cipher, only builds the parameters into the class for later use
-    FileCipher(String scheme, byte[] k, byte[] iv)
+    FileCipher(String scheme, SecretKey k)
             throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, InvalidAlgorithmParameterException {
 
         // Parse the plain algorithm from the entire encryption scheme, if applicable
         StringTokenizer st = new StringTokenizer(scheme, "/");
-        String alg = st.nextToken();
 
-        // Build out our key.
-        SecretKeySpec keySpec = new SecretKeySpec(k, alg);
-        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(alg);
+	    // Initialize our cipher
+	    cipher = Cipher.getInstance(scheme);
 
-        key = secretKeyFactory.generateSecret(keySpec);
-        cipher = Cipher.getInstance(scheme);
+	    // Store our key
+	    key = k;
 
-        if (iv == null)
-            newIV();
-        else
-            newIV(iv);
     }
 
     /* File I/O is the same across all implementations */
     void EncryptFile(File plainText, File cipherText) throws IOException, InvalidAlgorithmParameterException, InvalidKeyException {
-        cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(IV));
+	    newIV();
+
+	    cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(IV));
 
 		/* Build an input stream that processes our plaintext through the block cipher */
         CipherInputStream cin = new CipherInputStream(new FileInputStream(plainText), cipher);
@@ -78,7 +73,7 @@ class FileCipher {
 
 		/* Read our IV from the ciphertext file */
 		byte[] b = new byte[cipher.getBlockSize()];
-		int status = in.read(b);
+		in.read(b);
 		newIV(b);
 
 		/* Initialize the Cipher object in DECRYPT_MODE, with the same key and the IV from our ciphertext file */
@@ -98,12 +93,13 @@ class FileCipher {
         return IV;
     }
 
-    public void newIV() {
+    private void newIV() {
         SecureRandom rng = new SecureRandom();
         IV = new byte[cipher.getBlockSize()];
+	    rng.nextBytes(IV);
     }
 
-    public void newIV(byte[] iv) {
+    private void newIV(byte[] iv) {
         IvParameterSpec ivps = new IvParameterSpec(iv);
         IV = ivps.getIV();
     }
