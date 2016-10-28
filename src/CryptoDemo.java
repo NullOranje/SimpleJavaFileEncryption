@@ -1,3 +1,15 @@
+/*
+ * Created by Nick McKinney on 10/26/16.
+ *
+ * Assignment: TCSS 581 (Cryptology) HW#2
+ *
+ * This is a generalized file encryption/decryption class based on the SunJCE provider
+ * It will encrypt/decrypt any file using any scheme in the SunJCE provider
+ *
+ * This is the test client for the FileCipher class I created.  This program just feeds information to/from the class
+ * and logs performance results.
+ */
+
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -13,6 +25,7 @@ import java.util.StringTokenizer;
 
 public class CryptoDemo {
 	public static void main(String[] args) {
+		// Define the encryption algorithms and modes I intend to use here.  For padding, I will use PKCS#5 padding
 		String[] schemes = {
 				"AES/CBC/PKCS5Padding",
 				"AES/CTR/PKCS5Padding",
@@ -22,11 +35,14 @@ public class CryptoDemo {
 				"DESede/CTR/PKCS5Padding"
 		};
 
+		// Define the number of test runs I will execute
 		final int TEST_COUNT = 32;
 
+		// Statically-linked file.  Probably bad practice, but it's a simple client
 		String path = "/Users/nicholas/Desktop/Cipher/";
 		File inFile = new File(path + "pg10.txt");
 
+		// Where I will log my results for external analysis (mean & standard deviation)
 		File logFile = new File(path + "results.csv");
 
 	    /* Begin the client testing */
@@ -36,6 +52,7 @@ public class CryptoDemo {
 			for (int i = 0; i < TEST_COUNT; i++) {
 
 				for (String alg : schemes) {
+					// Separate the algorithm (AES, DES, or DESede [3DES]) from the rest of the scheme.
 					StringTokenizer st = new StringTokenizer(alg, "/");
 					String method = st.nextToken();
 
@@ -43,7 +60,9 @@ public class CryptoDemo {
 					KeyGenerator keygen = KeyGenerator.getInstance(method);
 					SecretKey keymat = keygen.generateKey();
 
-					FileCipher fc = new FileCipher(alg, keymat);  // This will produce a random IV when initializing the cipher
+					// Initialize my file encryption/decryption utility
+					// This will produce a random IV when initializing the cipher
+					FileCipher fc = new FileCipher(alg, keymat);
 
 					// Take our test scheme and make a pretty filename for it.
 					st = new StringTokenizer(alg, "/");
@@ -67,6 +86,7 @@ public class CryptoDemo {
 					long stop = System.currentTimeMillis();
 					System.out.println("Encryption time:  " + (stop - start) + "ms\n");
 
+					// Log runtime statistics
 					output = "encryption," + alg + "," + (stop - start) + '\n';
 					logResults(output, logFile);
 
@@ -78,11 +98,13 @@ public class CryptoDemo {
 					System.out.println("Decryption time:  " + (stop - start) + "ms");
 					System.out.println("---------------------------------------------------");
 
+					// Log runtime statistics
 					output = "decryption," + alg + "," + (stop - start) + '\n';
 					logResults(output, logFile);
 				}
 			}
 		/* End Client Testing */
+
 		} catch (NoSuchPaddingException e) {
 			System.err.println(e.getMessage());
 			System.exit(100);
@@ -107,8 +129,10 @@ public class CryptoDemo {
 		}
 	}
 
+	// Write given string to logfile.
 	private static void logResults(String logData, File logFile) throws IOException {
 		FileOutputStream logResults = new FileOutputStream(logFile, true);
 		logResults.write(logData.getBytes());
+		logResults.close();
 	}
 }
